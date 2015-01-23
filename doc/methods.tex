@@ -1,0 +1,436 @@
+ In the present section we give a brief exposition of the algorithm implemented in BNFinder and its computational cost for two generally used scoring criteria: Minimal Description Length and Bayesian-Dirichlet equivalence.
+ For a fuller treatment, including detailed proofs, we refer the reader to
+%   \cite{dojer06}.
+     \cite{dojer06,dojer10}.
+
+\subsection{Polynomial-time exact algorithm}
+
+ A \emph{Bayesian network} (BN) $\N$ is a representation of a joint distribution of a set of discrete random variables $\X=\{X_1,\ldots,X_n\}$.
+ The representation consists of two components:
+ \begin{itemize}
+  \item a directed acyclic graph $\G=(\X,\E)$ encoding conditional (in-)dependencies
+  \item a family $\theta$ of conditional distributions $P(X_i|\Pa_i)$, where
+   $$\Pa_i=\{Y\in\X|(Y,X_i)\in\E\}$$
+ \end{itemize}
+ The joint distribution of $\X$ is given by
+ \begin{equation}\label{joinprob}
+ P(\X)=\prod_{i=1}^n P(X_i|\Pa_i)
+ \end{equation}
+
+ The problem of learning a BN is understood as follows: 
+ given a multiset of $\X$-instances $\D=\{\x_1,\ldots,\x_N\}$ find a network graph $\G$ that best matches $\D$.
+ The notion of a good match is formalized by means of a \emph{scoring function} $S(\G:\D)$ having positive values and minimized for the best matching network. 
+ Thus the point is to find a directed acyclic graph $\G$ with the set of vertices $\X$ minimizing $S(\G:\D)$.
+ 
+ The BNFinder program is devoted to the case when there is no need to examine the acyclicity of the graph, for example:
+ \begin{itemize}
+  \item When dealing with \emph{dynamic} Bayesian networks. A dynamic BN  describes stochastic evolution of a set of random variables over discretized time. Therefore conditional distributions refer to random variables in neighboring time points. The acyclicity constraint is relaxed, because the ''unrolled'' graph (with a copy of each variable in each time point) is always acyclic (see \cite{friedman98} for more details). The following considerations apply to dynamic BNs as well. 
+  \item In case of static Bayesian Networks, the user has to supply the
+   algorithm with a partial ordering of the vertices, restricting the
+   set of possible edges only to the ones consistent with the
+   ordering. BNFinder lets the user to divide the set of variables into an
+   ordered set of disjoint subsets of variables, where edges can only
+   exist between variables from different subsets and they have to be
+   consistent with the ordering. If such ordering is not known
+   beforehand, one can try to run BNFinder with different orderings and
+   choose a network with the best overall score.
+ \end{itemize}
+ 
+ %The detailed description of the most generally used MDL and BDe scores will be provided in further sections.
+ In the sequel we consider some assumptions on the form of a scoring function.
+ The first one states that $S(\G:\D)$ decomposes into a sum over the set of random variables of \emph{local scores}, depending on the values of a variable and its parents in the graph only.
+ 
+\begin{ass}[additivity]\label{as1}
+ $S(\G:\D) = \sum_{i=1}^n s(X_i,\Pa_i:\D|_{\{X_i\}\cup\Pa_i})$, where $\D|_{\Y}$ denotes the restriction of $\D$ to the values of the members of $\Y\subseteq\X$.
+\end{ass}
+
+ When there is no need to examine the acyclicity of the graph, this assumption allows to compute the parents set of each variable independently.
+ Thus the point is to find $\Pa_i$ minimizing $s(X_i,\Pa_i:\D|_{\{X_i\}\cup\Pa_i})$ for each $i$.
+
+ Let us fix a dataset $\D$ and a random variable $X$. 
+ We denote by $\X'$ the set of potential parents of $X$ (possibly smaller than $\X$ due to given constraints on the structure of the network).
+ To simplify the notation we continue to write $s(\Pa)$ for $s(X,\Pa:\D|_{\{X\}\cup\Pa})$.
+ 
+ The following assumption expresses the fact that scoring functions decompose into 2 components: $g$ penalizing the complexity of a network and $d$ evaluating the possibility of explaining data by a network.
+
+\begin{ass}[splitting]\label{as2}
+ $s(\Pa)=g(\Pa)+d(\Pa)$ for some functions $g,d:\mathcal{P}(\X)\to\mathbb{R}^+$ satisfying $\Pa\subseteq\Pa'\Longrightarrow g(\Pa)\le g(\Pa')$.
+\end{ass}
+
+ This assumption is used in the following algorithm to avoid considering networks with inadequately large component $g$.
+
+\begin{alg}\label{a1}~
+\begin{center}
+\begin{tabular}{|p{0.9\textwidth}|}\hline
+\begin{enumerate}
+\item $\Pa:=\emptyset$
+\item for each $\PP\subseteq\X'$ chosen according to $g(\PP)$
+\begin{enumerate}
+\item if $s(\PP)<s(\Pa)$ then $\Pa:=\PP$
+\item if $g(\PP)\ge s(\Pa)$ then return $\Pa$; stop
+\end{enumerate}
+\end{enumerate}\\
+\hline
+\end{tabular}
+\end{center}
+\end{alg}
+
+ In the above algorithm \emph{choosing according to $g(\PP)$} means choosing increasingly with respect to the value of the component $g$ of the local score.
+ 
+ \begin{theorem}
+ Suppose that the scoring function satisfies Assumptions \ref{as1}-\ref{as2}. Then Algorithm \ref{a1} applied to each random variable finds an optimal network.
+ \end{theorem}
+ 
+ A disadvantage of the above algorithm is that finding a proper subset $\PP\subseteq\X'$ involves computing $g(\PP')$ for all $\subseteq$-successors $\PP'$ of previously chosen subsets. 
+ It may be avoided when a further assumption is imposed.
+
+\begin{ass}[uniformity]\label{as3}
+ $|\Pa|=|\Pa'|\Longrightarrow g(\Pa)=g(\Pa')$.
+\end{ass}
+
+ The above assumption suggests the notation $\g(|\Pa|)=g(\Pa)$. 
+ The following algorithm uses the uniformity of $g$ to reduce the number of computations of the component $g$.
+
+\begin{alg}\label{a2}~
+\begin{center}
+\begin{tabular}{|p{0.9\textwidth}|}\hline
+\begin{enumerate}
+\item $\Pa:=\emptyset$
+\item for $p=1$ to $n$%$|\X|$
+\begin{enumerate}
+\item if $\g(p)\ge s(\Pa)$ then return $\Pa$; stop
+\item $\PP=arg min_{\{\Y\subseteq\X' : |\Y|=p\}}s(\Y)$
+\item if $s(\PP)<s(\Pa)$ then $\Pa:=\PP$
+\end{enumerate}
+\end{enumerate}\\
+\hline
+\end{tabular}
+\end{center}
+\end{alg}
+
+ \begin{theorem}
+ Suppose that the scoring function satisfies Assumptions \ref{as1}-\ref{as3}. Then Algorithm \ref{a2} applied to each random variable finds an optimal network.
+ \end{theorem}
+ 
+\subsection{Minimal Description Length}
+
+ The Minimal Description Length (MDL) scoring criterion originates from information theory \cite{lam94}. 
+ A network $\N$ is viewed here as a model of compression of a dataset $\D$. 
+ The optimal model minimizes the total length of the description, i.e. the sum of the description length of the model and of the compressed data.
+ MDL is effectively equivalent to Bayesian Information Criterion (BIC) 
+ (see \cite{neapolitan03}), 
+ which approximates Bayesian scores (see next section) 
+ and is also applicable to continuous data.
+
+ Let us fix a dataset $\D=\{\x_1,\ldots,\x_N\}$ and a random variable $X$. 
+ Recall the decomposition $s(\Pa)=g(\Pa)+d(\Pa)$ of the local score for $X$. 
+ In the MDL score $g(\Pa)$ stands for the length of the description of the local part of the network (i.e. the edges ingoing to $X$ and the conditional distribution $P(X|\Pa)$) and $d(\Pa)$ is the length of the compressed version of $X$-values in $\D$.
+ 
+ Let $k_Y$ denote the cardinality of the set $\V_Y$ of possible values of the random variable $Y\in\X$.
+ Thus we have 
+ $$g(\Pa)=|\Pa|\log n+\frac{\log N}{2}(k_X-1)\prod_{Y\in\Pa}k_Y$$
+ where $\frac{\log N}{2}$ is the number of bits we use for each numeric parameter of the conditional distribution. 
+ This formula satisfies Assumption \ref{as2} but fails to satisfy Assumption \ref{as3}.
+ Therefore Algorithm \ref{a1} can be used to learn an optimal network, but Algorithm \ref{a2} cannot. 
+ 
+ However, for many applications we may assume that 
+ all random variables have the same value set $\V$ of cardinality $k$.
+ In this case we obtain the formula
+ $$g(\Pa)=|\Pa|\log n+\frac{\log N}{2}(k-1)k^{|\Pa|}$$
+ which satisfies Assumption \ref{as3}.
+ For simplicity, we continue to work under this assumption.
+ 
+ Compression with respect to the network model is understood as follows: when encoding the $X$-values, the values of $\Pa$-instances are assumed to be known. 
+ Thus the optimal encoding length is given by 
+ $$d(\Pa)=N\cdot H(X|\Pa)$$
+ where $H(X|\Pa)=-\sum_{v\in\V}\sum_{\vp\in\V^{\Pa}}P(v,\vp)\log P(v|\vp)$ is the conditional entropy of $X$ given $\Pa$ (the distributions are estimated from $\D$).
+ 
+ Since all the assumptions from the previous section are satisfied, Algorithm \ref{a2} may be applied to learn the optimal network. 
+ Let us turn to the analysis of its complexity.
+ 
+ \begin{theorem}
+ The worst-case time complexity of Algorithm \ref{a2} for the MDL score is $\OO(n^{\log_k N}N\log_k N)$.
+ \end{theorem}
+ 
+\subsection{Bayesian-Dirichlet equivalence}
+
+ The Bayesian-Dirichlet equivalence (BDe) scoring criterion originates from Bayesian statistics \cite{cooper92}. 
+ Given a dataset $\D$ the optimal network structure $\G$ maximizes the \emph{posterior} conditional probability $P(\G|\D)$. 
+ We have 
+ $$P(\G|\D)\propto P(\G)P(\D|\G)=P(\G)\int P(\D|\G,\theta)P(\theta|\G)d\theta$$
+ where $P(\G)$ and $P(\theta|\G)$ are \emph{prior} probability distributions on graph structures and conditional distributions' parameters, respectively, and $P(\D|\G,\theta)$ is evaluated due to \eqref{joinprob}.
+ 
+ Heckerman et al. \cite{heckerman95}, following Cooper and Herskovits \cite{cooper92}, identified a set of independence assumptions making possible decomposition of the integral in the above formula into a product over $\X$.
+ Under this condition, together with a similar one regarding decomposition of $P(\G)$, the scoring criterion
+ $$S(\G:\D)=-\log P(\G)-\log P(\D|\G)$$
+ obtained by taking $-\log$ of the above term satisfies Assumption \ref{as1}. 
+ Moreover, the decomposition $s(\Pa)=g(\Pa)+d(\Pa)$ of the local scores appears as well, with the components $g$ and $d$ derived from $-\log P(\G)$ and $-\log P(\D|\G)$, respectively.
+
+% The distribution $P((\X,\E))\propto\alpha^{|\E|}$ with a penalty parameter $0<\alpha<1$ in general is used as a prior over the network structures. 
+% This choice results in the function 
+% $$g(|\Pa|)=|\Pa|\log\alpha^{-1}$$ 
+% satisfying Assumptions \ref{as2} and \ref{as3}.
+
+ The distribution $P((\X,\E))\propto\prod_{e\in\E}\alpha_{e}$ 
+ with penalty parameters $0<\alpha_e<1$ 
+ is commonly used as a prior over the network structures. 
+ BNFinder sets $\alpha_{(Y,X)}=1/k_Y$ by default.
+ This choice results in the function 
+ $$g(\Pa)=\sum_{Y\in\Pa}\log k_Y$$ 
+ satisfying Assumptions \ref{as2}.
+ If we moreover assume that all random variables 
+ have the same value set $\V$ of cardinality $k$,
+ we obtain the function
+ $$g(\Pa)=|\Pa|\log k$$ 
+ satisfying also Assumption \ref{as3}.
+ For simplicity, we continue to work under this assumption.
+
+ However, it should be noticed that there are also used priors 
+ which satisfy neither Assumption \ref{as2} nor \ref{as3}, 
+ e.g.  $P(\G)\propto\alpha^{\Delta(\G,\G_0)}$, 
+ where $\Delta(\G,\G_0)$ is the cardinality of the symmetric difference 
+ between the sets of edges in $\G$ and in the prior network $\G_0$.
+ 
+ The \emph{Dirichlet distribution} is generally used as a prior over the conditional distributions' parameters.
+ It yields
+ $$d(\Pa)=\log\left(\prod_{\vp\in\V^{|\Pa|}}
+  \frac{\Gamma(\sum_{v\in\V}(H_{v,\vp}+N_{v,\vp}))}{\Gamma(\sum_{v\in\V}H_{v,\vp})}
+  \prod_{v\in\V}\frac{\Gamma(H_{v,\vp})}{\Gamma(H_{v,\vp}+N_{v,\vp})}\right)$$
+ where $\Gamma$ is the \emph{Gamma} function, $N_{v,\vp}$ denotes the number of samples in $\D$ with $X=v$ and $\Pa=\vp$, and $H_{v,\vp}$ is the corresponding \emph{hyperparameter} of the Dirichlet distribution.
+ 
+ Setting all the hyperparameters to $1$ yields
+ \begin{multline*}d(\Pa)=\log\left(\prod_{\vp\in\V^{|\Pa|}}
+  \frac{(k-1+\sum_{v\in\V}N_{v,\vp})!}{(k-1)!}
+  \prod_{v\in\V}\frac{1}{N_{v,\vp}!}\right)=\\
+  =\sum_{\vp\in\V^{|\Pa|}}\left(
+ \log({\textstyle k-1+\underset{v\in\V}{\sum}N_{v,\vp}})!-\log(k-1)!
+  -\sum_{v\in\V}\log{N_{v,\vp}!}\right)
+ \end{multline*}
+ where $k=|\V|$.
+ For simplicity, we continue to work under this assumption (following Cooper and Herskovits \cite{cooper92}).
+ The general case may be handled in a similar way.
+ 
+ The following result allows to refine the decomposition of the local score into the sum of the components $g$ and $d$.
+ 
+ \begin{proposition}
+ Define $d_{min}=\sum_{v\in\V}\left(\log(k-1+N_v)!-\log(k-1)!-\log N_v!\right)$, where $N_v$ denotes the number of samples in $\D$ with $X=v$. 
+ Then $d(\Pa)\ge d_{min}$ for each $\Pa\in\X$.
+ \end{proposition}
+ 
+ By the above proposition, the decomposition of the local score given by $s(\Pa)=g'(\Pa)+d'(\Pa)$ with the components $g'(\Pa)=g(\Pa)+d_{min}$ and $d'(\Pa)=d(\Pa)-d_{min}$ satisfies all the assumptions required by Algorithm \ref{a2}. 
+ Let us turn to the analysis of its complexity.
+  
+ \begin{theorem}
+ The worst-case time complexity of Algorithm \ref{a2} for the BDe score with the decomposition of the local score given by $s(\Pa)=g'(\Pa)+d'(\Pa)$ is $\OO(n^{N\log_{\alpha^{-1}}k}N^2\log_{\alpha^{-1}}k)$.
+ \end{theorem}
+
+
+\subsection{Mutual information test}
+
+The Mutual Information Test (MIT) scoring criterion originates from the concept of mutual information, belonging to the family of measures based on information theory \cite{deCampos}. Briefly speaking, this method combines mutual information measure and a statistical independence test based on the chi-square dustribution assosiated with it. The goodness of a fit of the particular network is computed as the total mutual information between each node and its parents. This score is then penalized by a term corresponding to the degree of statistical significance of the shared information. 
+
+Let $\mathcal{D}$ be a dataset with $N$ observations, $\mathcal{G}$ be the dynamic bayesian network. 
+Let $X = \{X_1,...,X_n\}$ be the set of $n$ variables, with each of it corresponding to $ \{r_1,...,r_n$\} discrete states.
+Let's denote the set of parents of $X_i$ in $\mathcal{G}$ with corresponding $\{r_{i1},...,r_{is_i}\}$ discrete states
+as $\Pa_i = \{X_{i1},...,X_{is_i}\}$. 
+Then the MIT score is defined as follows \cite{globMIT}: 
+$$\mathcal{S(G:D)} = \sum_{i=0; \Pa_i \neq \emptyset}^n \{ 2N \cdot I(X_i, \Pa_i) - \sum_{j=1}^{s_i} \chi_{\alpha l_i \sigma_i(j)} \}$$
+
+In this formula $I(X_i, \Pa_i)$ denotes the mutual information between $X_i$ and its parents
+as estimated from $\mathcal{D}$ and defined as $$ I(X;Y) = \sum_{y \in Y} \sum_{x \in X} p(x,y) \log \left(\frac{p(x,y)}{p(x)p(y)}\right)  $$
+$\chi_{\alpha l_i \sigma_i(j)} $ is the chi-square distribution at significance level $1-\alpha$.
+It is defined as the value such that $$p(\chi^{2}(l_{ij}) \le \chi_{\alpha l_ij})=\alpha $$
+\\The term $ l_{i \sigma_i (j)}$ denotes the degrees of freedom and is defined as 
+$$ l_{i \sigma_i (j)} = \begin{cases}
+   (r_i-1)(r_{i \sigma_i (j)} -1) \prod_{k=1}^{j-1} r_{i \sigma_i (k)}, & \text{$j=2..,s_i$}.\\
+   (r_i-1)(r_{i \sigma_i (j)} -1), & \text{$j=1$}.
+ \end{cases}
+$$
+where $\sigma_i = \{\sigma_i (1),...,\sigma_i(s_i)\}$ is any permutation of the index set
+$\{1...s_i\}$ of $\Pa_i$ such that, the number of states of the variables
+decreases with the increasing position in the permutation. 
+
+Recall the decomposition $ S_{MIT}(\Pa_i) = d_{MIT}(\Pa_i) + g_{MIT}(\Pa_i) $. 
+In this case:  
+$$ d_{MIT}(\Pa_i) = 2N\cdot I(X_i, \mathbf{X}) - 2N \cdot I(X_i, \Pa_i) $$
+$$ g_{MIT}(\Pa_i) = \sum_{j=1}^{s_i} \chi_{\alpha l_i \sigma_i(j)} $$ 
+Roughly, $d_{MIT}$ measures the accuracy of representing the joint distribution of 
+$\mathcal{D}$ by $\mathcal{G}$ while $g_{MIT}$ measures the complexity of this representation. This decomposition
+satisfies Assumption 2.
+However, MIT score defined in this way does not satisfy Assumption 3.
+Therefore, we introduce an assumption that all the variables have the same number of discrete states.
+
+\begin{ass}[uniformity]\label{as4}
+ All variables in $X$ have the same number of discrete states k.
+\end{ass}
+
+Under this assumption it can be easily shown that $g_{MIT}$ satisfies Assumption 3.
+ \begin{theorem} \cite{globMITManual}
+ The worst-case time complexity of Algorithm \ref{a2} for the MIT score under the assumption of the variables uniformity is polynomial in the number of variables. 
+ \end{theorem}
+
+
+\subsection{Continuous variables}
+
+All the scoring functions implemented in BNFinder (MDL, BDe and MIT) 
+were originally designed for discrete variables.
+In order to avoid arbitrary discretization of continuous data 
+we adapted them to deal with continuous variables directly. 
+Moreover, our method works also with heterogenous data sets 
+joining together discrete and continuous variables.
+
+%% The distribution of each continuous variable is assumed to be 
+%% a mixture of two normal distributions.
+%% Mixture parameters are estimated from data clustered with the \emph{k-means} algorithm 
+%% ($k=2$, cutting the set of variable values in the median yields the initial clusters).
+%% Then the parameters are used in transforming continuous values into 
+%% probability distributions on the mixture components.
+%% These components are considered to be the two possible values 
+%% (\emph{low} and \emph{high}) 
+%% of a related hidden discrete variable.
+
+The distribution of each continuous variable $X$ is assumed to be 
+a mixture of two normal distributions.
+Mixture components correspond to the two possible values 
+(\emph{low} and \emph{high}) of a related hidden discrete variable $X'$
+and $X$ is viewed as its observable reflection.
+%Therefore regulatory relationships are learned 
+%for discrete variables rather than continuous ones.
+Consequently, the conditional distributions of $X$ is given by:
+%\begin{multline*}
+$$
+P(X|\Pa)=
+\sum_{v\in\Vc}\sum_{\vp\in\Vc^{|\Pa|}}P(X|X'=v)P(X'=v|\Pa'=\vp)P(\Pa'=\vp|\Pa)
+$$
+%=\\
+%=\sum_{v\in\Vc}
+%\left(\sum_{\vp\in\Vc^{|\Pa|}}P(X'=v|\Pa'=\vp)P(\Pa'=\vp|\Pa)\right)
+%P(X|X'=v)
+%\end{multline*}
+%Since distributions $P(X|X'=v)$ are Gaussian, 
+%$P(X|\Pa)$ is a Gaussian mixture with parameters dependent on values of $\Pa$.
+
+%In a preprocessing step parameters of $P(X|X')$ are estimated separately 
+%for each variable $X$.
+Conditional distributions $P(X|X')$ are assumed to be independent 
+for all variables $X$.
+Thus we estimate their parameters separately for each $X$ in a preprocessing step.
+Estimation is based on data clustering with the \emph{k-means} algorithm 
+($k=2$, cutting the set of variable values in the median yields initial clusters).
+Due to the independence assumption, these parameters enable us to calculate also
+$P(\Pa'|\Pa)=\prod_{Y\in\Pa}P(Y'|Y)$.
+Thus the space of possible conditional distributions on continuous variables
+forms a family of Gaussian mixtures, parameterized by $P(X'|\Pa')$, 
+%They are the only free parameters in $P(X|\Pa)$ and at the same time the parameters of
+conditional distributions on corresponding discrete variables.
+
+From a technical point of view,
+BNFinder learns optimal network structures for these discrete variables, 
+using scoring functions adapted to handle 
+distributions on variable values instead of their determined values
+(expected values of original scores are computed).
+For continuous variables it gives optimal Bayesian networks from among 
+all networks with conditional probability distributions
+belonging to the above defined family of Gaussian mixtures.
+
+
+The following results present the complexity of our algorithm 
+with continuous MDL and BDe scoring functions.
+
+ \begin{theorem}
+ The worst-case time complexity of Algorithm \ref{a2} for the continuous MDL score is $\OO(n^{\log N}N^2)$.
+ \end{theorem}
+ 
+ \begin{theorem}
+ The worst-case time complexity of Algorithm \ref{a2} for the continuous BDe score with the decomposition of the local score given by $s(\Pa)=g'(\Pa)+d'(\Pa)$ is $\OO((2n)^\frac{N}{\log\alpha^{-1}}N)$.
+ \end{theorem}
+ 
+ \subsection{Network density control}
+
+Recall that scoring functions decompose into 2 components: 
+$g$ penalizing the complexity of a network and 
+$d$ evaluating the possibility of explaining data by a network.
+The balance between these components influences 
+the reliability of reconstructed relationships between variables --
+high $g$-to-$d$ ratio results in high specificity, 
+while low $g$-to-$d$ ratio yields high sensitivity.
+
+BNFinder has 3 mechanisms controlling this balance:
+\begin{enumerate}
+\item Option \verb$-d$ directly multiplies $g$-to-$d$ ratio by 
+a uniform factor for all pairs of variables.
+\item Option \verb$-r$ sets $g$-to-$d$ ratios for all edges
+according to specified proportion of false positive edges
+(type I error rate). 
+It is particularly useful for heterogeneous sets of potential parents
+(continuous and discrete, discrete with varying levels of discretization),
+when different types of variables require specific treatment.
+\item Input dataset preamble commands \verb$#prioredge$ and \verb$#priorvert$
+modify $g$-to-$d$ ratios for specified network edges.
+%This mechanism is intended to modify $g$-to-$d$ ratios selectively,
+%in order
+They are intended to incorporate into the learning process 
+prior knowledge regarding possible variable dependencies.
+This method may be combined with one of previous mechanisms.
+\end{enumerate}
+
+Option \verb$-d$ modifies $g$-to-$d$ ratio by virtual dataset multiplication.
+%Remaining two mechanisms redefine component $g$ of the scoring function.
+%In the case of BDe score prior distributions over network structures 
+%are chosen accordingly.
+Remaining two mechanisms adjust components $g$ of the scoring function.
+It is done through redefining the formula for $g$ 
+by raising parameters $k_Y$,
+the number of discretization levels of a potential parent $Y$ 
+to appropriate powers $w_{Y,X}$
+(in the case of BDe, it is just a modification of 
+a prior distribution over network structures).
+Exponents $w_{Y,X}$ are either adjusted to required type I error rate 
+or specified in the preamble of a dataset.
+They must satisfy $w_{Y,X}>0$, default values $w_{Y,X}=1$ result 
+in the original formula for $g$ component.
+%Since $g$-component formulas in MDL and MIT scores are unparameterized,
+%we redefined them,
+%introducing parameters in place of 
+%the numbers of parent variables' discretization levels.
+%Since MDL and MIT scores have no corresponding parameters,
+%we redefined their $g$-component formulas,
+%introducing such parameters in place of 
+%the numbers of parent variables' discretization levels.
+
+The control of type I error rate is based on a statistical model for 1-element
+set of potential parents and extrapolated to all sets.
+In the 1-element case there are only 2 potential parent sets:
+$\emptyset$ and $\{Y\}$, where $Y$ is the only potential parent
+of considered regulated variable $X$.
+First, BNFinder calculates the required type I error probability for edge $(Y,X)$.
+When no prior distribution on the network structure 
+is specified in the dataset preamble,
+all edge error probabilities equal the requested type I error rate.
+Otherwise they are weighted according to the inverses of prior parameters.
+
+Under a null hypothesis $H_0$ that variables $X$ and $Y$ are independent,
+type I error occurs when $s(\{Y\})<s(\emptyset)$.
+We define $Z_{Y,X}=d(\{Y\})-d(\emptyset)$ and $z_{Y,X}=g(\emptyset)-g(\{Y\})$.
+Thus $s(\{Y\})<s(\emptyset)$ if and only if $Z_{Y,X}<z_{Y,X}$.
+Note that $Z_{Y,X}$ is a function of dataset values of random variables $X$ and $Y$,
+so it is a random variable too.
+On the other hand, $z_{Y,X}$ is independent of the data
+and monotonically depends on $w_{Y,X}$.
+
+BNFinder randomly permutes values of $Y$ in the dataset
+and calculates $Z_{Y,X}$ for each permutation.
+The number of permutations is chosen according to 
+requested type I error probability and the dataset size. 
+Moreover, it may be manually shrunk to avoid exhaustive computations.
+The estimate of
+cumulative distribution function for $Z_{Y,X}$ under $H_0$ assumption
+is derived from calculated values and $d_{min}-d(\emptyset)$,
+the lower bound on $Z_{Y,X}$.
+%These values and $d_{min}-d(\emptyset)$, the lower bound on $Z_{Y,X}$,
+%are then used to derive the estimate of 
+%cumulative distribution function for $Z_{Y,X}$ under $H_0$ assumption.
+Based on this distribution BNFinder adjusts $w_{Y,X}$ to yield
+$P(Z_{Y,X}<z_{Y,X} | H_0)$ %=r_{Y,X}$, 
+%where $r_{Y,X}$ is 
+equal to the required type I error probability for edge $(Y,X)$.

@@ -1,0 +1,486 @@
+
+\subsection{Installation}
+
+The BNFinder software uses setuptools, which is the standard library for
+packaging python software. The package itselff is available through the Python Package Index (\url{http://pypi.python.org/pypi/BNfinder/}) while more frequent releases as well as the source code are available from the project website in launchpad (\url{http://launchpad.net/bnfinder}). After downloading the archive containing the current version of BNF, you should extract it to a directory of
+choice. In unix-like systems you can do it by  typing
+\begin{verbatim}
+tar -xzf bnfinder-xxx-xxx-.tgz
+\end{verbatim}
+
+If you want to install the latest development version from launchpad, you can do it directly with bzr version management tool:
+
+\begin{verbatim}
+bzr branch lp:bnfinder
+\end{verbatim}
+
+Once you have the sources extracted, the installation is performed by
+a single command
+\begin{verbatim}
+python setup.py install
+\end{verbatim}
+in the source directory (\textbf{it may require the administrator privileges}).
+
+This installs the BNfinder library to an apropriate location for your
+python interpreter, and the bnf, the bnf-cv and the bnc scripts which may be accessed from a
+command line.
+
+In case you don't have administrator privileges, you can either use bnfinder without installation (by invoking commands within the downloaded directory) or by installing within user home directory:
+
+\begin{verbatim}
+python setup.py install --user
+\end{verbatim}
+
+\subsubsection{System requirements}
+\label{sec:req}
+
+BNFinder is written in pure python, so the only true requirement is the python2 interpreter (any reasonably recent version like 2.6.x or newer should do). Please note that BNFinder is not currently compatible with python3. If you are interested in porting BNFinder to python3 please let us know. 
+
+There are several packages one might need to install to have BNFinder working properly, most notably the packages scipy and fpconst are required for proper functioning of BNFinder
+
+If you would like to generate ROC plots for classification, you will also need a working installation of the R language, the Rpy2 python package and ROCR package withing R. 
+
+\subsection{Usage}
+
+\subsubsection{bnf}
+
+The bnf script is the main part of BNfinder command line tools. Is is used for learning the bayesian network from data and can be executed by typing
+\begin{verbatim}
+bnf <options>
+\end{verbatim}
+
+The following options are available:
+\begin{description}
+\item[\texttt{-h, -\hspace{0pt}-help}]~\\
+ print out a brief summary of options and exit
+\item[\texttt{-e, -\hspace{0pt}-expr <file>}]~\\
+ load learning data from \texttt{<file>} (this option is obligatory)
+\item[\texttt{-s, -\hspace{0pt}-score <name>}]~\\
+ learn with \texttt{<name>} scoring criterion;
+ possible names are \texttt{BDE} (default) and \texttt{MDL}
+\item[\texttt{-l, -\hspace{0pt}-limit <number>}]~\\
+ limit the search space to networks with at most 
+ \texttt{<number>} parents for each vertex
+\item[\texttt{-i, -\hspace{0pt}-suboptimal <number>}]~\\
+ return at most \texttt{<number>} best scored parents sets for each vertex 
+ (default 1; negative values result in no limit)
+\item[\texttt{-m, -\hspace{0pt}-min-empty <value>}]~\\
+ for each vertex return only parents sets with relative probabilities 
+ greater than \texttt{<value>} (default 0)
+\item[\texttt{-o, -\hspace{0pt}-min-optimal <value>}]~\\
+ for each vertex return only parents sets with the ratio of their
+ posterior probability to the optimal set's one
+ greater than \texttt{<value>} (default 0)
+\item[\texttt{-r, -\hspace{0pt}-fpr <value>}]~\\
+ adjust $g$ components of the scoring function to yield
+ the expected proportion of false positive edges (type I error rate)
+ equal to \texttt{<value>};
+ the procedure is switched off by default
+\item[\texttt{-x, -\hspace{0pt}-max-permutations <number>}]~\\
+ do not perform more than \texttt{<number>} permutations 
+ in the predetermination of type I error rate
+\item[\texttt{-d, -\hspace{0pt}-data-factor <number>}]~\\
+ multiply (each item of) the dataset \texttt{<number>} times (default 1); 
+ this option may be used to change the proportion between $d$ and $g$ components 
+ of the scoring function (see the definition of the \emph{splitting} assumption);
+ it has no effect when the option \texttt{-r} is also used
+\item[\texttt{-v, -\hspace{0pt}-verbose}]~\\
+ print out communicates on standard output %(see section \ref{output} for details)
+\item[\texttt{-p, -\hspace{0pt}-prior-pseudocount <number>}]~\\
+ set the pseudocounts of data items with specified values of a vertex and its parents set 
+ to $\frac{\texttt{<number>}}{|\V|^{|\Pa|+1}}$ 
+ (resulting in the total pseudocount equal to \texttt{<number>}) 
+ -- this method follows Heckerman et al \cite{heckerman95}; 
+ when the option is unspecified, all pseudocounts are set to 1, 
+ following Cooper and Herskovitz \cite{cooper92}; 
+ pseudocounts are used as hyperparameters of the Dirichlet priors 
+ of the BDE scoring criterion and also in the estimation 
+ of the conditional probability distributions (CPDs) of learned network
+\item[\texttt{-n, -\hspace{0pt}-net <file>}]~\\
+ write the learned network graph to \texttt{<file>} in the SIF format
+\item[\texttt{-t, -\hspace{0pt}-txt <file>}]~\\
+ write the learned suboptimal parents sets to \texttt{<file>}
+\item[\texttt{-b, -\hspace{0pt}-bif <file>}]~\\
+ write the learned optimal Bayesian network to \texttt{<file>} 
+ in the BIF format
+ \item[\texttt{-c, -\hspace{0pt}-cpd <file>}]~\\
+  write the learned optimal Bayesian network to \texttt{<file>} 
+  as a Python dictionary 
+\item[\texttt{-f, -\hspace{0pt}-fraction <value>}]~\\
+ set the minimal weight of a parent to be considered in a parent set %pbd: tutaj może by się przydało napisać, co to jest ta waga
+\item[\texttt{-a, -\hspace{0pt}-chi <value>}]~\\
+ set the alpha value for the chi-square distribution used in MIT score (default=.9999)
+\item[\texttt{-g, -\hspace{0pt}-sloops}]~\\
+ allow self-loops in Dynamic Bayesian Networks (by default self-loops are disabled)
+\item[\texttt{-k, -\hspace{0pt}-cpu <number>}]~\\
+ use number of processes for multiprocessing - by default 0 is used (no multiprocessing)
+\end{description}
+
+\subsubsection{bnf-cv}
+
+The bnf-cv script is a utility to perform cross-validation tests. The script can be executed by typing:
+\begin{verbatim}
+bnf-cv <options>
+\end{verbatim}
+
+The following options are available:
+\begin{description}
+\item[\texttt{-h, -\hspace{0pt}-help}]~\\
+ print out a brief summary of options and exit
+\item[\texttt{-e, -\hspace{0pt}-expr <file>}]~\\
+ load learning data from \texttt{<file>} (this option is obligatory)
+\item[\texttt{-k, -\hspace{0pt}-cross-val-folds <number>}]~\\
+ set the number of cross-validation folds to \texttt{k}; defaults to 10;
+ if equal to 1, do not perform cross-validation at all
+\item[\texttt{-s, -\hspace{0pt}-score <name>}]~\\
+ learn with \texttt{<name>} scoring criterion;
+ possible names are \texttt{BDE} (default) and \texttt{MDL}
+\item[\texttt{-l, -\hspace{0pt}-limit <number>}]~\\
+ limit the search space to networks with at most 
+ \texttt{<number>} parents for each vertex
+\item[\texttt{-i, -\hspace{0pt}-suboptimal <number>}]~\\
+ return at most \texttt{<number>} best scored parents sets for each vertex 
+ (default 1; negative values result in no limit)
+\item[\texttt{-m, -\hspace{0pt}-min-empty <value>}]~\\
+ for each vertex return only parents sets with relative probabilities 
+ greater than \texttt{<value>} (default 0)
+\item[\texttt{-o, -\hspace{0pt}-min-optimal <value>}]~\\
+ for each vertex return only parents sets with the ratio of their
+ posterior probability to the optimal set's one
+ greater than \texttt{<value>} (default 0)
+\item[\texttt{-r, -\hspace{0pt}-roc <file>}]~\\
+ write ROC curve to the given \texttt{file}; it will contain a curve for each
+ cross-validation fold and one additional curve averaging remaining ones
+ %pbd: pasowałoby chyba napisać coś o tym, co trzeba zrobić, żeby zdobyć tego Rocr
+\item[\texttt{-d, -\hspace{0pt}-data-factor <number>}]~\\
+ multiply (each item of) the dataset \texttt{<number>} times (default 1); 
+ this option may be used to change the proportion between $d$ and $g$ components 
+ of the scoring function (see the definition of the \emph{splitting} assumption);
+\item[\texttt{-v, -\hspace{0pt}-verbose}]~\\
+ print out communicates on standard output
+\item[\texttt{-p, -\hspace{0pt}-prior-pseudocount <number>}]~\\
+ set the pseudocounts of data items with specified values of a vertex and its parents set 
+ to $\frac{\texttt{<number>}}{|\V|^{|\Pa|+1}}$ 
+ (resulting in the total pseudocount equal to \texttt{<number>}) 
+ -- this method follows Heckerman et al \cite{heckerman95}; 
+ when the option is unspecified, all pseudocounts are set to 1, 
+ following Cooper and Herskovitz \cite{cooper92}; 
+ pseudocounts are used as hyperparameters of the Dirichlet priors 
+ of the BDE scoring criterion and also in the estimation 
+ of the conditional probability distributions (CPDs) of learned network
+\item[\texttt{-n, -\hspace{0pt}-net <file>}]~\\
+ write the learned network graph in the SIF format to \texttt{<file>0}, \texttt{<file>1}, ..., \texttt{<file>(k-1)}
+ for each cross-validation fold respectively; \texttt{k} is the number of crossvalidation folds
+\item[\texttt{-t, -\hspace{0pt}-txt <file>}]~\\
+ write the learned suboptimal parents sets to to \texttt{<file>0}, \texttt{<file>1}, ..., \texttt{<file>(k-1)}
+ for each cross-validation fold respectively; \texttt{k} is the number of crossvalidation folds
+\item[\texttt{-b, -\hspace{0pt}-bif <file>}]~\\
+ write the learned optimal Bayesian network in the BIF format to \texttt{<file>0}, \texttt{<file>1}, ..., \texttt{<file>(k-1)}
+ for each cross-validation fold respectively; \texttt{k} is the number of crossvalidation folds
+\item[\texttt{-c, -\hspace{0pt}-cpd <file>}]~\\
+ write the learned optimal Bayesian network as a Python dictionary to \texttt{<file>0}, \texttt{<file>1}, ..., \texttt{<file>(k-1)}
+ for each cross-validation fold respectively; \texttt{k} is the number of crossvalidation folds 
+\item[\texttt{-f, -\hspace{0pt}-fraction <value>}]~\\
+ set the minimal weight of a parent to be considered in a parent set
+\item[\texttt{-a, -\hspace{0pt}-chi <value>}]~\\
+ set the alpha value for the chi-square distribution used in MIT score (default=.9999)
+%\item[\texttt{-g, -\hspace{0pt}-sloops}]~\\ %pbd: nie ma tej opcji w cv?
+% allow self-loops in Dynamic Bayesian Networks (by default self-loops are disabled)
+
+%pbd: co z multiprocessingiem dla cv?
+\item[\texttt{-x, -\hspace{0pt}-xaxis <name>}]~\\
+ specify x axis of the roc curve (\texttt{tpr} is default); see Rocr manual for posiible options
+\item[\texttt{-y, -\hspace{0pt}-yaxis}]~\\
+ specify x axis of the roc curve (\texttt{fpr} is default); see Rocr manual for posiible options
+\item[\texttt{-A, -\hspace{0pt}-diag}]~\\
+ set to 0 to remove diagonal line from roc plots
+%pbd: tutaj by się chyba przydało zmienić to na True/False
+\end{description}
+
+\subsubsection{bnc}
+
+The bnc script allows you to perform a classification task, using a network encoded in a file in cpd format. The script can be executed by typing:
+\begin{verbatim}
+bnc <options>
+\end{verbatim}
+
+The following options are available:
+\begin{description}
+\item[\texttt{-h, -\hspace{0pt}-help}]~\\
+ print out a brief summary of options and exit
+\item[\texttt{-c, -\hspace{0pt}-cpd <file>}]~\\
+ load \texttt{<file>} with the conditional probability distribution gotten from BNfinder (this option is obligatory)
+\item[\texttt{-d, -\hspace{0pt}-data <file>}]~\\
+ load \texttt{<file>} with values of all regulator variables (this option is obligatory)
+\item[\texttt{-m, -\hspace{0pt}-ml}]~\\
+ output only the most likely value; switched off for default
+%pbd: to chyba trzeba przerobić na True/False
+\item[\texttt{-p, -\hspace{0pt}-prob <number>}]~\\
+ output the probability of given class \texttt{number} (for all nodes)
+\item[\texttt{-o, -\hspace{0pt}-out <file>}]~\\
+ write the result of the classification to \texttt{file} (by default writes to \texttt{stdout})
+\end{description}
+
+When neither \texttt{-m} nor \texttt{-p} option is given, writes out for every regulatee and experiment the python dictionary with probabilities for all classes.
+
+\subsection{Input format for structure learning}
+
+ The learning data must be passed to BNfinder in a text file splitted into 3 parts: preamble, experiment specification and experiment data.
+ The preamble allows user to specify some features of data and/or network, while the next two parts contain the learning data, essentially formatted as a table with space- or tab-separated values.
+
+\subsubsection{Preamble}
+
+ The preamble allows specifying experiment peturbations, structural constraints, vertex value types, vertex CPD types and edge weights.
+ Each line in the preamble has the following form:
+\begin{verbatim}
+#<command> <arguments>
+\end{verbatim}
+
+ Experiments with perturbed values of some vertices carry no information regarding their regulatory mechanism.
+ Thus including these experiments data in learning parents of their perturbed vertices biases the result (see \cite{dojer06:BMC} for a detailed treatment).
+ The following command handles perturbations:
+\begin{description}
+\item[\texttt{\#perturbed <experiment/serie> <vertex list>}]~\\
+ omit data from experiment (serie of experiments in the case of dynamic networks) \texttt{<experiment/serie>} when learning parents of vertices from \texttt{<vertex list>} %(because their values were perturbed in \texttt{<serie>})
+\end{description}
+
+ One possible way of specifying structural constraints with BNfinder is to list potential parents of particular vertices.
+ An easier method is available for constraints of the cascade form, where the vertex set is splitted into a sequence of groups and each parent of a vertex must belong to one of previous groups (a simple but extremely useful example is a cascade with 2 groups: regulators and regulatees).
+ There are 2 commands specifying structural constraints:
+\begin{description}
+\item[\texttt{\#parents <vertex> <vertex list>}]~\\
+ restrict the set of potential parents of \texttt{<vertex>} to \texttt{<vertex list>}.
+\item[\texttt{\#regulators <vertex list>}]~\\
+ restrict the set of potential parents of all vertices except specified with \texttt{\#parents} command or with previous or present \texttt{\#regulators} command to vertices included in \texttt{<vertex list>} of previous or present \texttt{\#regulators} command.
+\end{description}
+ Note that structural constraints forcing network's acyclicity are necessery for learning a static Bayesian network with BNfinder.
+ 
+ Vertex value types may be specified with the following commands:
+\begin{description}
+\item[\texttt{\#discrete <vertex> <value list>}]~\\
+ let \texttt{<value list>} be possible values of \texttt{<vertex>}
+\item[\texttt{\#continuous <vertex list>}]~\\
+ let float numbers be possible values of all vertices in \texttt{<vertex list>}
+\item[\texttt{\#default <value list>}]~\\
+ let \texttt{<value list>} be possible values of all vertices except specified with \texttt{\#discrete} or \texttt{\#continuous} command (when \texttt{<value list>} is \texttt{FLOAT}, float numbers are possible values)
+\end{description}
+ Values in \texttt{<value list>} may be integers or words (strings without whitespaces).
+ When some vertices are left unspecified, BNfinder tries to recognize their possible value sets.
+ However it may miss, in particular when some float numbers are written in integer format or when some possible values are not represented in the dataset (note that the size of the set of possible values affects the score).
+ 
+ The space of possible CPDs of some vertices given their parents may be restricted to \emph{noisy-and} or \emph{noisy-or} distributions.
+ In this case, the sets of possible values of these vertices and their potential parents must be either $\{0,1\}$ or float numbers.
+ Moreover, BNfinder should be executed with the MDL scoring criterion.
+ The following commands specify vertices with \emph{noisy} CPDs:
+\begin{description}
+\item[\texttt{\#and <vertex list>}]~\\
+ restrict the space of possible CPDs of vertices from \texttt{<vertex list>} to \emph{noisy-and} distributions
+\item[\texttt{\#or <vertex list>}]~\\
+ restrict the space of possible CPDs of vertices from \texttt{<vertex list>} to \emph{noisy-or} distributions
+\end{description}
+
+ The following commands set prior weights on network edges:
+\begin{description}
+\item[\texttt{\#prioredge <vertex> <weight> <vertex list>}]~\\
+ set the prior weights of all edges originating from vertices from \texttt{<vertex list>} and aiming at \texttt{<vertex>} to \texttt{<weight>}
+\item[\texttt{\#priorvert <weight> <vertex list>}]~\\
+ set the prior weights of all edges originating from vertices from \texttt{<vertex list>} (except specified in \texttt{<prioredge>} command) to \texttt{<weight>}
+\end{description}
+ Weights must be positive float numbers.
+ Edges with greater weights are penalized harder.
+ The default weight is 1.
+
+\subsubsection{Experiment specification}
+
+ The experiment specification has the following form:
+\begin{verbatim}
+<name> <experiment list>
+\end{verbatim}
+ where \texttt{<name>} is a word starting with a symbol other then \texttt{\#}.
+ It is used in some output formats as the name of the learned network 
+(until \texttt{<name>} = \texttt{conditions}, 
+in such case the input file name is used).
+ The form of experiment names depends on the data type and, consequently, on the type of learned network:
+ \begin{itemize}
+ \item When the dataset consists of results of independent experiments and a static Bayesian network is to be learned, experiment names are words without the symbol '\texttt{:}'.
+ \item When the dataset consists of results of time series experiments and a dynamic Bayesian network is to be learned, experiment names have the form \texttt{<serie>:<condition>}.
+  Each serie must be ordered according to the condition times and cannot be interrupted by experiments from other series.
+ \end{itemize}
+ 
+\subsubsection{Experiment data}
+
+ Each line of the experiment data part has the following form:
+\begin{verbatim}
+<vertex> <value list>
+\end{verbatim}
+ where \texttt{<vertex>} is a word and values are listed in the order corresponding to \texttt{<experiment list>}.
+ 
+\subsection{Input format for classification task}
+
+ Format for classification task's input consists of two parts:
+
+\subsubsection{Experiment specification}
+ This part follows exactly the same rules as when specifying the input for learning the bayesian network structure.
+
+\subsubsection{Experiment data}
+
+ Each line of the experiment data part has the following form:
+\begin{verbatim}
+<vertex> <value list>
+\end{verbatim}
+ where \texttt{<vertex>} is a word and values are listed in the order corresponding to \texttt{<experiment list>}.
+ In this part we specify only values for regulators. The same names for vertices as while learning the network structure
+ should be given here. 
+
+\subsection{Output formats}\label{output}
+
+\subsubsection{Suboptimal parents sets}
+
+ Suboptimal parents sets are written to a file in a simple text format
+ splitted into sections representing the sets of the parents of each vertex.
+ Each section contains a leading line with the vertex name
+ followed by lines representing its consecutive suboptimal parents sets.
+ Each of these lines has the form:
+\begin{verbatim}
+ <relative probability> <vertex list>
+\end{verbatim}
+ were \texttt{<relative probability>} is the ratio of the set's posterior probability
+ to the posterior probability of the empty parents set
+ and \texttt{<vertex list>} contains the elements of the set.
+ Lines are ordered decreasingly according to \texttt{<relative probability>}.
+
+To show it by example, the section:
+\begin{verbatim}
+C
+ 2.333333  B
+ 1.000000 
+ 0.592593  B A
+\end{verbatim}
+reports 3 most probable parents sets of the vertex $C$: $\{B\},\emptyset,\{B,A\}$.
+Moreover, it states that $\{B\}$ is 2.333333 times more probable than the empty set
+and the corresponding ratio for $\{B,A\}$ equals 0.592593.
+ 
+\subsubsection{SIF format}
+
+The SIF (Simple Interaction File), usually contained in files with
+\texttt{.sif} extension is the simplest of the supported network formats 
+and carries only information on its topology. In this
+format, each line represents the fact of a single interaction. In our
+case such interaction represents the fact that one variable depends on
+some other variable. Each line contains three values:
+\begin{itemize}
+\item Parent variable identifier,
+\item Interaction label; its type depends on the argument of the \texttt{-i}
+ option (specifying the number of reported suboptimal parents sets)
+  \begin{itemize}
+  \item if =1 (default), \texttt{+/-} is reported when
+  positive or negative correlation between variables is found
+  \item otherwise, the edge label represents the posterior probability 
+  of the interaction represented by the edge 
+  (under the assumption that the true parents set is among the suboptimal ones)
+  \end{itemize}
+\item Child variable identifier.
+\end{itemize}
+
+To show it by example, the file:
+\begin{verbatim}
+A + B
+B - C
+\end{verbatim}
+describes a network of the following shape:
+$$ A \xrightarrow{+} B \xrightarrow{-} C.$$
+
+Running BNFinder with the same input file and $\neq$1 argument 
+of \texttt{-i} option could result in the file of the form:
+\begin{verbatim}
+B 0.2254 A
+C 0.1560 A
+A 0.8563 B
+B 0.0358 B
+A 0.0247 C
+B 0.9463 C
+\end{verbatim}
+showing that the posterior probabilities of the interactions 
+$ A \rightarrow B $ and $ B \rightarrow C $ are significantly 
+higher than the other ones.
+
+The main advantage of this format is that it can be read by the
+Cytoscape (\texttt{http://cytoscape.org}) software allowing for quick
+visualization. It is also trivial to use such data in one's own
+software.  
+
+\subsubsection{BIF format} 
+
+ Bayesian Interchange Format (BIF) is a simple text format dedicated to Bayesian networks.
+ It is supported in some BN applications (e.g. JavaBayes, Bayes Networks Editor)
+ and may be easily converted with available tools to other popular formats 
+ (including XML formats and BNT format of K. Murphy's Bayes Net Toolbox).
+ BNfinder writes learned networks in BIF version 0.15.
+ 
+\subsubsection{Python dictionary}
+
+A network saved in \texttt{<file>} as a dictionary may be loaded to your Python environment by
+\begin{verbatim}
+eval(open(<file>).read())
+\end{verbatim}
+
+The dictionary consists of items corresponding to all network's vertices.
+Each item has the following form:
+\begin{verbatim}
+<vertex name> : <vertex dictionary>
+\end{verbatim}
+
+Vertex dictionaries have the following items:
+\begin{description}
+\item[\texttt{'vals' : <value list>}]
+\item[\texttt{'pars' : <parent list>}]
+\item[\texttt{'type' : <CPD type>}]~\\
+ (only for vertices with \emph{noisy} CPDs, possible values of \texttt{<CPD type>} are \texttt{'and'} and \texttt{'or'})
+\item[\texttt{'cpds' : <CPD dictionary>}]
+\end{description}
+
+The form of the vertex CPD dictionary depends on the vertex type.
+In the case of noisy CPD, the dictionary items have the following form:
+\begin{description}
+\item[\texttt{<vertex name> : <probability>}]~\\
+ which means (in the case of noisy-and/-or distribution) that the considered vertex is assigned value 1/0 with \texttt{<probability>} given all its parents but \texttt{<vertex name>} equal 1/0
+\end{description}
+In the case of general CPD, the dictionary has items of the following form:
+\begin{description}
+\item[\texttt{<value vector> : <distribution dictionary>}]~\\
+ where \texttt{<value vector>} is a tuple of parents' values and the distribution of the considered vertex given \texttt{<parent list> = <value vector>} is defined in \texttt{<distribution dictionary>} in the following way:
+\begin{description}
+\item[\texttt{<value> : <probability>}]~\\
+ means that the vertex is assigned \texttt{<value>} with \texttt{<probability>}
+\item[\texttt{None : <probability>}]~\\
+ means that the vertex is assigned with \texttt{<probability>} each of its possible values unspecified in a separate item
+\end{description}
+\item[\texttt{None : <probability>}]~\\
+ means that given \texttt{<parent list>} equal to a value vector unspecified in a separate item the vertex is assigned each of its possible values with \texttt{<probability>}
+\end{description}
+ 
+\subsubsection{Standard output}
+
+When BNfinder is executed from a command line with the option \texttt{-v}, 
+it prints out communicates related to its current action: 
+loading data, learning regulators of consecutive vertices and writing output files.
+Moreover, after finishing computations for a vertex
+%pbd: co z multiprocessingiem dla cv?
+its predicted best parents sets and their scores are reported
+and after finishing computations for all vertices
+BNfinder reports the score and structure of the optimal network.
+
+\subsubsection{Classification results}
+
+The result of \texttt{bnc} command is written to a file with the following format. First line contains only names of experiments:
+\begin{verbatim}
+classes <name list>
+\end{verbatim}
+Next lines contain information depending on the options chosen. When \texttt{bnc} is executed with \texttt{-m} option, lines with most likely values for regulatees are printed to a file. All of them have the following form:
+\begin{verbatim}
+<vertex name> <ML value list>
+\end{verbatim}
+When \texttt{bnc} is executed with \texttt{-p} option, for every regulatee one line with probability of being in the specified class is written to the output:
+\begin{verbatim}
+<vertex name> <probability list>
+\end{verbatim}

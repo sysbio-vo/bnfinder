@@ -1,0 +1,21 @@
+\begin{thebibliography}{1}
+
+\bibitem{cooper92}
+Gregory~F. Cooper and Edward Herskovits.
+\newblock A {B}ayesian method for the induction of probabilistic networks from
+  data.
+\newblock {\em Machine Learning}, 9:309--347, 1992.
+
+\bibitem{dojer06:BMC}
+Norbert Dojer, Anna Gambin, Bartek Wilczy\'{n}ski, and Jerzy Tiuryn.
+\newblock Applying dynamic {B}ayesian networks to perturbed gene expression
+  data.
+\newblock {\em BMC Bioinformatics}, 7:249, 2006.
+
+\bibitem{heckerman95}
+David Heckerman, Dan Geiger, and David~Maxwell Chickering.
+\newblock Learning {B}ayesian networks: The combination of knowledge and
+  statistical data.
+\newblock {\em Machine Learning}, 20(3):197--243, Sep. 1995.
+
+\end{thebibliography}
