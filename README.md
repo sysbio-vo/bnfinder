@@ -8,7 +8,7 @@ The installation is performed by a single command in the source directory (it ma
 
 python setup.py install
 
-You can also run it without installing:
+During the installation it will automaticaly setup fpconst and scipy python packages if needed. Also you can run it without installing:
 
 python bnf --help
 
