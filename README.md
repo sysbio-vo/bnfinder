@@ -12,8 +12,6 @@ During the installation it will automaticaly setup fpconst and scipy python pack
 
 python bnf --help
 
-For more information refer to:
-
-https://github.com/sysbio-vo/bnfinder/wiki
+For more information refer to previous version:
 
 http://bioputer.mimuw.edu.pl/software/bnf/
