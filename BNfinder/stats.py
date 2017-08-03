@@ -820,6 +820,8 @@ Returns: Pearson's r value, two-tailed p-value
     df = n-2
     if r>1.0: # sometimes due to rounding errors we get r>1.0 ...
 	r=1.0-TINY
+    if r<-1.0: # or r<-1.0
+        r=-1.0+TINY
     t = r*math.sqrt(df/((1.0-r+TINY)*(1.0+r+TINY)))
     prob = betai(0.5*df,0.5,df/float(df+t*t))
     return r, prob
