@@ -629,7 +629,7 @@ class dataset:
         return self.prior.get((vertex.name,parent.name),self.prior.get(parent.name,1))
  
  
-    def learn(self,score,data_factor, prior=None,cores=False, subset=False, \
+    def learn(self,score,data_factor,alg,prior=None,cores=False,subset=False, \
             verbose=None,n_min=1,limit=None,min_empty=None,min_optim=None,fpr=None,max_tries=None):
         
         scr=score
@@ -689,8 +689,14 @@ class dataset:
                 # In case of limit<=3 it is efficient to use hybrid alg
                 # There are two situations: number of cores >= number of vertices and opposite one.
                 # So, we need to handle it separately to distritube cores equaly
+                lim = 0
+                if (alg=="set"):
+                    lim = 0
+                if (alg=="variable"):
+                    lim = 999
+
                 pool=MyPool(1)
-                if (limit is not None) and (int(limit)<=3) and (cores>int(limit)):
+                if (limit is not None) and (int(limit)<=lim) and (cores>int(limit)):
                     if (cores>=len(vertices)):
                         pool=MyPool(len(vertices))
                         for counter in range(1, len(vertices)+1):
@@ -726,7 +732,7 @@ class dataset:
                 # Need to check if we just want to concatenate previously obtained results
                 if (subset==False) or (subset != "concat"):
                     # Hybrid alg
-                    if (limit is not None) and (int(limit)<=3) and (cores>int(limit)):
+                    if (limit is not None) and (int(limit)<=lim) and (cores>int(limit)):
                         result=pool.map(learn_x,[(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, y) for x, y in zip(vertices, distribs)])
                     # Simple alg    
                     else:

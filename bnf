@@ -32,6 +32,7 @@ if __name__=="__main__":
     parser.add_option("-g", "--sloops", dest="sloops", action='store_true', default=False, help="Allow self-loops in Dynamic Bayesian Networks (no self-loops by default)")
     parser.add_option("-k", "--cpu", dest="cores", type=int, default=0, help="Number of cores you want to use for parallelization")
     parser.add_option("-j", "--subset", dest="subset", help="Specify the file with subset of genes (divided by space character), parents of which you want to find. Use 'concat' value to combine the results. BNFinder will automaticaly search for files 'genes_*'")
+    parser.add_option("-q", "--algorithm", dest="alg", default="set", help="Choose the parralelization algorithm:'set' (default, give all the cores to compute parents set of one variable) or 'variable' (evenly distributes cores between variables)")
 
     (options, args) = parser.parse_args()
 
@@ -65,6 +66,7 @@ if __name__=="__main__":
                         min_empty=options.min_empty,\
                         min_optim=options.min_optim,\
                         cores=options.cores,\
+                        alg=options.alg,\
                         subset=options.subset,\
                         fpr=options.fpr,
                         max_tries=options.max_tries,)
