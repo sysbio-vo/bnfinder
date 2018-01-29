@@ -14,7 +14,7 @@ if __name__=="__main__":
     parser = OptionParser()
     parser.add_option("-s", "--score", dest="score",default="BDE",help="Scoring function: BDE (default) or MDL or MIT")
     parser.add_option("-d", "--data-factor", dest="df",default=1.0,type=float,help="Factor multiplying the data set")
-    parser.add_option("-e", "--expr", dest="expr",help="Expression data file")
+    parser.add_option("-e", "--expr", dest="expr",help="Expression data file (can be used with other data types as well)")
     parser.add_option("-t", "--txt", dest="txt",help="Output file with the suboptimal parents sets")
     parser.add_option("-n", "--net", dest="net",help="Output file with the network structure")
     parser.add_option("-c", "--cpd", dest="cpd",help="Output file with the conditional probability distributions")
@@ -30,9 +30,9 @@ if __name__=="__main__":
     parser.add_option("-x", "--max-permutations", dest="max_tries", type=int, default=None, help="Maximal number of permutations in type I error rate predetermination")
     parser.add_option("-a", "--chi", dest="chi", type=float, default=.9999, help="alpha value for the chi-square distribution used in MIT score (default=.9999)")
     parser.add_option("-g", "--sloops", dest="sloops", action='store_true', default=False, help="Allow self-loops in Dynamic Bayesian Networks (no self-loops by default)")
-    parser.add_option("-k", "--cpu", dest="cores", type=int, default=0, help="Number of cores you want to use for parallelization")
-    parser.add_option("-j", "--subset", dest="subset", help="Specify the file with subset of genes (divided by space character), parents of which you want to find. Use 'concat' value to combine the results. BNFinder will automaticaly search for files 'genes_*'")
-    parser.add_option("-q", "--algorithm", dest="alg", default="set", help="Choose the parralelization algorithm:'set' (default, give all the cores to compute parents set of one variable) or 'variable' (evenly distributes cores between variables)")
+    parser.add_option("-k", "--cpu", dest="cores", type=int, default=0, help="Number of cores to use for parallelization")
+    parser.add_option("-j", "--subset", dest="subset", help="Input file with subset of variables (divided by space character). The feature is useful when the inference complexity is too high, allowing distributed usage of BNFinder. After all the variables are processed, put resulting 'genes_*' files into one folder and use 'concat' instead of file name. If only particular variables are subject for parents set inference it is advisable to simply edit input data file instead of using this argument")
+    parser.add_option("-q", "--algorithm", dest="alg", default="setwise", help="Parallelization algorithm: 'setwise' (default, uses all the cores to compute parents set of one variable before proceeding further) or 'hybrid' (evenly distributes cores between variables, it is recommended to use only if underlying network is supposed to be homogeneous with respect to the number of parents per variable or in case when computational complexity is low)")
 
     (options, args) = parser.parse_args()
 

@@ -629,11 +629,10 @@ class dataset:
         return self.prior.get((vertex.name,parent.name),self.prior.get(parent.name,1))
  
  
-    def learn(self,score,data_factor,alg,prior=None,cores=False,subset=False, \
+    def learn(self,score,data_factor,alg=None,prior=None,cores=False,subset=None, \
             verbose=None,n_min=1,limit=None,min_empty=None,min_optim=None,fpr=None,max_tries=None):
         
         scr=score
-        distribs = []
 
         # calculate fpr_factor
         if fpr:
@@ -664,91 +663,78 @@ class dataset:
                 if x.name in subset:
                     vertices.append(x)
 
-        if cores:
-            # Some preparatory work
-            try:
-                import multiprocessing
-                import multiprocessing.pool
-            except ImportError:
-                print "Problem invoking multiprocessing module. Running on a single CPU"
-                cores=False
-            else:
-                # Daemonic processes are not allowed to have children
-                class NoDaemonProcess(multiprocessing.Process):
-                # make 'daemon' attribute always return False
-                    def _get_daemon(self):
-                        return False
-                    def _set_daemon(self, value):
-                       pass
-                    daemon = property(_get_daemon, _set_daemon)
+        # Need to check if we just want to concatenate previously obtained results
+        if (not subset) or (subset != "concat"):
+            if cores:
+                # Some preparatory work
+                try:
+                    import multiprocessing
+                    import multiprocessing.pool
+                except ImportError:
+                    print "Problem invoking multiprocessing module. Running on a single CPU"
+                    cores=False
+                else:
+                    # Daemonic processes are not allowed to have children
+                    class NoDaemonProcess(multiprocessing.Process):
+                    # make 'daemon' attribute always return False
+                        def _get_daemon(self):
+                            return False
+                        def _set_daemon(self, value):
+                           pass
+                        daemon = property(_get_daemon, _set_daemon)
 
-                class MyPool(multiprocessing.pool.Pool):
-                    Process = NoDaemonProcess                
-                
-                # We need to define how to distribute cores among the tasks
-                # In case of limit<=3 it is efficient to use hybrid alg
-                # There are two situations: number of cores >= number of vertices and opposite one.
-                # So, we need to handle it separately to distritube cores equaly
-                lim = 0
-                if (alg=="set"):
-                    lim = 0
-                if (alg=="variable"):
-                    lim = 999
+                    class MyPool(multiprocessing.pool.Pool):
+                        Process = NoDaemonProcess                
+                    
+                    # There are two different algorithms for parallelization: set-wise and hybrid
+                    # Set-wise algorithm is default and uses all the cores to compute parents set of one variable before proceeding further
+                    # Hybrid algorithm evenly distributes cores between variables.
+                    # It is recommended to use only if underlying network is supposed to be homogeneous
+                    # with respect to the number of parents per variable or
+                    # in case when computational complexity is low)
 
-                pool=MyPool(1)
-                if (limit is not None) and (int(limit)<=lim) and (cores>int(limit)):
-                    if (cores>=len(vertices)):
-                        pool=MyPool(len(vertices))
-                        for counter in range(1, len(vertices)+1):
-                            if (counter<=(cores%len(vertices))):
-                                distribs.append(cores/len(vertices) + 1)
-                            else:
-                                distribs.append(cores/len(vertices))
-                    else:
-                        count = cores/int(limit)
-                        if (cores%int(limit)>0):
-                            count = count + 1
-                            
-                        for counter in range(1, count+1):
-                            if (counter<=(cores%count)):
-                                distribs.append(cores/count + 1)
-                            else:
-                                distribs.append(cores/count)
+                    pool=MyPool(1)
+                    distribs = []
+                    # Computational part
+                    if verbose:
+                        print "Computing in parallel"
 
-                        temp = []
-                        for i in range (1, len(vertices)+1):
-                            temp.append(distribs[i%count])
-                        distribs = temp 
-                        pool=MyPool(count)
-                
-                # Computational part
-                if verbose:
-                    print "Computing in parallel"
+                    from itertools import izip,repeat
+                    import timeit
+                    start = timeit.default_timer()
 
-                from itertools import izip,repeat
-                import timeit
-                start = timeit.default_timer()
-
-                # Need to check if we just want to concatenate previously obtained results
-                if (subset==False) or (subset != "concat"):
-                    # Hybrid alg
-                    if (limit is not None) and (int(limit)<=lim) and (cores>int(limit)):
-                        result=pool.map(learn_x,[(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, y) for x, y in zip(vertices, distribs)])
-                    # Simple alg    
-                    else:
+                    if (alg=="setwise"):
                         result = map(learn_x, [(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, cores) for x in vertices])
 
-                pool.close()
-                pool.join()
+                    if (alg=="hybrid"):
+                        # There are two situations: number of cores >= number of vertices and opposite one.
+                        # So, we need to handle it separately to distritube cores equaly
+                        if (cores>=len(vertices)):
+                            pool=MyPool(len(vertices))
+                            for counter in range(len(vertices)):
+                                if (counter<=(cores%len(vertices))):
+                                    distribs.append(cores/len(vertices) + 1)
+                                else:
+                                    distribs.append(cores/len(vertices))
+                        else:
+                            pool=MyPool(cores)
+                            distribs = [1 for i in range(len(vertices))]
+                    
+                        result=pool.map(learn_x,[(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, y) for x, y in zip(vertices, distribs)])
 
-                stop = timeit.default_timer()
-                s = str(stop - start)
-                if verbose:
-                    print "----------------------------------------"
-                    print "Time, secs: ", s
-                    # Save computational time to file
-                    with open("time"+str(cores)+".txt", 'w') as file:
-                        file.write(s)
+
+                    pool.close()
+                    pool.join()
+
+                    stop = timeit.default_timer()
+                    s = str(stop - start)
+
+                    if verbose:
+                        print "----------------------------------------"
+                        print "Time, secs: ", s
+                        # Save computational time to file
+                        with open("time"+str(cores)+".txt", 'w') as file:
+                            file.write(s)
 
                 # Save computed subset of genes to file
                 if (subset) and (subset != "concat"):
@@ -757,12 +743,12 @@ class dataset:
                     pickle.dump(result, file_pi)
                     exit()
                  
-        # Computing without any parallelizing                   
-        else:
-            result=map(learn_x,[(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, cores) for x in self.vertices])
+            # Computing without any parallelizing                   
+            else:
+                result=map(learn_x,[(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, cores) for x in self.vertices])
 
         # Concatenating previously computed subsets of genes
-        if subset == "concat":
+        elif subset == "concat":
             import pickle 
             result = []
             names = []
@@ -771,14 +757,16 @@ class dataset:
                 for name in files:
                     if name.startswith("genes"):
                         names.append(name)
-            
+                break
+
             for name in names:
-                file_pi = open(name)
+                file_pi = open(os.getcwd()+"/"+name)
                 result.extend(pickle.load(file_pi))
 
         #print result
         self.vertices=[r[0] for r in result]
         #TODO do we need this line?^
+        print result
 
         total_score = 0.0
         pars ={}
