@@ -725,7 +725,7 @@ class dataset:
                         if (cores>=length):
                             pool=MyPool(length)
                             for counter in range(length):
-                                if (counter<=(cores%lenth)):
+                                if (counter<=(cores%length)):
                                     distribs.append(cores/length + 1)
                                 else:
                                     distribs.append(cores/length)
