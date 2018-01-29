@@ -724,6 +724,10 @@ class dataset:
                             length = len(vertices)
                         if (cores>=length):
                             pool=MyPool(length)
+                            if (self.regulators):
+                                for counter in range(len(self.regulators[0])):
+                                    distribs.append(1)
+
                             for counter in range(length):
                                 if (counter<=(cores%length)):
                                     distribs.append(cores/length + 1)
