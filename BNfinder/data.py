@@ -704,18 +704,31 @@ class dataset:
                     start = timeit.default_timer()
 
                     if (alg=="setwise"):
-                        result = map(learn_x, [(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, cores) for x in vertices])
+                        if (self.regulators):
+                            for v in vertices:
+                                if v in self.regulators[0]:
+                                    distribs.append(1)
+                                else:
+                                    distribs.append(cores)
+
+                            result = map(learn_x, [(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, y) for x, y in zip(vertices, distribs)])
+                        else:
+                            result = map(learn_x, [(x,self,min_empty,min_optim,scr,verbose,n_min,limit,fpr_factor,max_tries, cores) for x in vertices])
 
                     if (alg=="hybrid"):
                         # There are two situations: number of cores >= number of vertices and opposite one.
                         # So, we need to handle it separately to distritube cores equaly
-                        if (cores>=len(vertices)):
-                            pool=MyPool(len(vertices))
-                            for counter in range(len(vertices)):
-                                if (counter<=(cores%len(vertices))):
-                                    distribs.append(cores/len(vertices) + 1)
+                        if (self.regulators):
+                            length = len(vertices) - len(self.regulators[0])
+                        else:
+                            length = len(vertices)
+                        if (cores>=length):
+                            pool=MyPool(length)
+                            for counter in range(length):
+                                if (counter<=(cores%lenth)):
+                                    distribs.append(cores/length + 1)
                                 else:
-                                    distribs.append(cores/len(vertices))
+                                    distribs.append(cores/length)
                         else:
                             pool=MyPool(cores)
                             distribs = [1 for i in range(len(vertices))]

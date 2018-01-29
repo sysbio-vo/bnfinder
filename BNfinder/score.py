@@ -159,7 +159,7 @@ class score:
                 while min_set.accepts(mg+mindata) and (size<=lim): #we can possibly add (sub-)optimal scores
 
                     # Parallelized version
-                    if cores:
+                    if (cores) and (cores>1):
                         import multiprocessing
                         import multiprocessing.pool
 
@@ -189,7 +189,7 @@ class score:
                     print "Using algorithm 1"
                     
                 # Parallelized version
-                if cores:
+                if (cores) and (cores>1):
                     import multiprocessing
                     import multiprocessing.pool
                     pool=multiprocessing.Pool(cores)                
