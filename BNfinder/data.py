@@ -766,7 +766,6 @@ class dataset:
         #print result
         self.vertices=[r[0] for r in result]
         #TODO do we need this line?^
-        print result
 
         total_score = 0.0
         pars ={}
