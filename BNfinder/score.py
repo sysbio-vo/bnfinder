@@ -129,7 +129,9 @@ class score:
        
 #        if not self.sloops:
 #            selected_data.rm_sloops()
-            
+        import timeit
+        start = timeit.default_timer()
+
         v = selected_data.vertex
         nd = len(selected_data)
         parents=selected_data.parents
@@ -239,8 +241,12 @@ class score:
                                 mg_succ=self.graph_score(n,v,weights_succ,nd)
                                 heappush(subsets,(mg_succ,weights_succ,sub_succ))                        
 
+        stop = timeit.default_timer()
+        s = str(stop - start)
         if verbose:
             print 'done', min_set
+            print "Time, secs: ", s
+            print "----------------------------------------"
         return min_set.optimal, min_set.tolist() 
 
 #    def learn_all(self,vertices,data,n_points):
