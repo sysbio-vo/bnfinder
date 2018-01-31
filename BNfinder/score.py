@@ -244,6 +244,7 @@ class score:
         stop = timeit.default_timer()
         s = str(stop - start)
         if verbose:
+            print "\n----------------------------------------"
             print 'done ' + v.name, min_set
             print "Time, secs: ", s
             print "----------------------------------------"
